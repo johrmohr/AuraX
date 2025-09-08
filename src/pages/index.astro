@@ -1,0 +1,398 @@
+---
+import { getAuraColor } from '../lib/aura-descriptions'
+---
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="viewport" content="width=device-width" />
+		<meta name="generator" content={Astro.generator} />
+		<title>AuraX - Check Your Twitter Aura</title>
+		<meta name="description" content="Analyze your Twitter profile picture and discover your aura rating!" />
+	</head>
+	<body>
+		<main class="container">
+			<div class="content">
+				<h1 class="title">AuraX</h1>
+				<p class="subtitle">Discover your Twitter profile picture's aura rating</p>
+				
+				<div class="form-container">
+					<form id="auraForm">
+						<div class="input-group">
+							<input 
+								type="text" 
+								id="username" 
+								placeholder="Enter Twitter/X username" 
+								required
+								autocomplete="off"
+								spellcheck="false"
+							/>
+							<button type="submit" id="analyzeBtn">
+								<span class="btn-text">Check Aura</span>
+								<span class="btn-loading" style="display: none;">
+									<div class="spinner"></div>
+									Analyzing...
+								</span>
+							</button>
+						</div>
+					</form>
+				</div>
+
+				<div id="result" class="result" style="display: none;">
+					<div class="result-content">
+						<img id="profileImage" class="profile-image" alt="Profile picture" />
+						<div class="aura-info">
+							<h2 id="username-display" class="username"></h2>
+							<div class="aura-score">
+								<span id="percentage" class="percentage"></span>
+								<span class="percentage-symbol">%</span>
+							</div>
+							<p id="description" class="description"></p>
+						</div>
+					</div>
+				</div>
+
+				<div id="error" class="error" style="display: none;"></div>
+			</div>
+		</main>
+
+		<style>
+			* {
+				margin: 0;
+				padding: 0;
+				box-sizing: border-box;
+			}
+
+			body {
+				font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+				background: #000;
+				color: #e7e9ea;
+				min-height: 100vh;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				padding: 20px;
+			}
+
+			.container {
+				width: 100%;
+				max-width: 500px;
+			}
+
+			.content {
+				background: #16181c;
+				border: 1px solid #2f3336;
+				border-radius: 16px;
+				padding: 32px;
+				text-align: center;
+			}
+
+			.title {
+				font-size: 2.5rem;
+				font-weight: 800;
+				color: #e7e9ea;
+				margin-bottom: 8px;
+				letter-spacing: -0.025em;
+			}
+
+			.subtitle {
+				color: #71767b;
+				font-size: 1rem;
+				margin-bottom: 32px;
+				font-weight: 400;
+			}
+
+			.form-container {
+				margin-bottom: 30px;
+			}
+
+			.input-group {
+				display: flex;
+				flex-direction: column;
+				gap: 15px;
+			}
+
+			input {
+				padding: 12px 16px;
+				border: 1px solid #2f3336;
+				border-radius: 9999px;
+				font-size: 1rem;
+				transition: all 0.2s ease;
+				background: transparent;
+				color: #e7e9ea;
+				width: 100%;
+			}
+
+			input:focus {
+				outline: none;
+				border-color: #1d9bf0;
+			}
+
+			input::placeholder {
+				color: #71767b;
+			}
+
+			button {
+				padding: 12px 24px;
+				background: #1d9bf0;
+				color: #fff;
+				border: none;
+				border-radius: 9999px;
+				font-size: 0.9375rem;
+				font-weight: 700;
+				cursor: pointer;
+				transition: all 0.2s ease;
+				position: relative;
+				overflow: hidden;
+				min-height: 36px;
+			}
+
+			button:hover:not(:disabled) {
+				background: #1a8cd8;
+			}
+
+			button:disabled {
+				opacity: 0.5;
+				cursor: not-allowed;
+			}
+
+			.btn-loading {
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				gap: 10px;
+			}
+
+			.spinner {
+				width: 16px;
+				height: 16px;
+				border: 2px solid rgba(255, 255, 255, 0.3);
+				border-radius: 50%;
+				border-top-color: #fff;
+				animation: spin 1s linear infinite;
+			}
+
+			@keyframes spin {
+				to { transform: rotate(360deg); }
+			}
+
+			.result {
+				background: #16181c;
+				border: 1px solid #2f3336;
+				border-radius: 16px;
+				padding: 24px;
+				margin-top: 24px;
+				animation: slideUp 0.3s ease;
+			}
+
+			@keyframes slideUp {
+				from {
+					opacity: 0;
+					transform: translateY(20px);
+				}
+				to {
+					opacity: 1;
+					transform: translateY(0);
+				}
+			}
+
+			.result-content {
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				gap: 20px;
+			}
+
+			.profile-image {
+				width: 80px;
+				height: 80px;
+				border-radius: 50%;
+				border: 2px solid #2f3336;
+				object-fit: cover;
+			}
+
+			.aura-info {
+				text-align: center;
+			}
+
+			.username {
+				font-size: 1.25rem;
+				font-weight: 700;
+				color: #e7e9ea;
+				margin-bottom: 12px;
+			}
+
+			.aura-score {
+				display: flex;
+				align-items: baseline;
+				justify-content: center;
+				gap: 5px;
+				margin-bottom: 15px;
+			}
+
+			.percentage {
+				font-size: 4rem;
+				font-weight: 900;
+				line-height: 1;
+				transition: all 0.3s ease;
+			}
+
+			.percentage-symbol {
+				font-size: 2rem;
+				font-weight: 700;
+				transition: all 0.3s ease;
+			}
+
+			.description {
+				font-size: 1.125rem;
+				font-weight: 700;
+				color: #e7e9ea;
+				text-transform: uppercase;
+				letter-spacing: 0.5px;
+				text-shadow: 0 0 8px currentColor;
+			}
+
+			.error {
+				background: #16181c;
+				border: 1px solid #f4212e;
+				border-radius: 12px;
+				padding: 16px;
+				margin-top: 16px;
+				color: #f4212e;
+				font-weight: 400;
+				font-size: 0.875rem;
+			}
+
+			/* Aura color classes based on percentage */
+			.aura-0-19 { color: #666; text-shadow: 0 0 10px #666; } /* Gray - No aura */
+			.aura-20-39 { color: #ff4444; text-shadow: 0 0 10px #ff4444; } /* Red - Weak */
+			.aura-40-59 { color: #ff8800; text-shadow: 0 0 10px #ff8800; } /* Orange - Average */
+			.aura-60-69 { color: #ffaa00; text-shadow: 0 0 10px #ffaa00; } /* Yellow-Orange - Good */
+			.aura-70-79 { color: #ffdd00; text-shadow: 0 0 10px #ffdd00; } /* Yellow - Strong */
+			.aura-80-89 { color: #88ff00; text-shadow: 0 0 10px #88ff00; } /* Lime - Insane */
+			.aura-90-94 { color: #00ff88; text-shadow: 0 0 20px #00ff88; } /* Cyan-Green - Legendary */
+			.aura-95-100 { 
+				color: #fff; 
+				text-shadow: 0 0 30px #00ffff, 0 0 60px #00ffff, 0 0 90px #00ffff;
+				animation: godlike-glow 2s ease-in-out infinite alternate;
+			} /* God-like glow */
+
+			@keyframes godlike-glow {
+				from {
+					text-shadow: 0 0 20px #00ffff, 0 0 40px #00ffff, 0 0 60px #00ffff;
+				}
+				to {
+					text-shadow: 0 0 30px #00ffff, 0 0 60px #00ffff, 0 0 90px #00ffff, 0 0 120px #00ffff;
+				}
+			}
+
+			@media (max-width: 600px) {
+				.content {
+					padding: 24px 20px;
+				}
+
+				.title {
+					font-size: 2rem;
+				}
+
+				.percentage {
+					font-size: 3rem;
+				}
+				
+				.input-group {
+					gap: 12px;
+				}
+				
+				input {
+					padding: 10px 14px;
+				}
+				
+				button {
+					padding: 10px 20px;
+				}
+			}
+		</style>
+
+		<script>
+			const form = document.getElementById('auraForm') as HTMLFormElement
+			const usernameInput = document.getElementById('username') as HTMLInputElement
+			const analyzeBtn = document.getElementById('analyzeBtn') as HTMLButtonElement
+			const btnText = document.querySelector('.btn-text') as HTMLElement
+			const btnLoading = document.querySelector('.btn-loading') as HTMLElement
+			const resultDiv = document.getElementById('result') as HTMLElement
+			const errorDiv = document.getElementById('error') as HTMLElement
+
+			form.addEventListener('submit', async (e) => {
+				e.preventDefault()
+				
+				const username = usernameInput.value.trim()
+				if (!username) return
+
+				// Show loading state
+				analyzeBtn.disabled = true
+				btnText.style.display = 'none'
+				btnLoading.style.display = 'flex'
+				resultDiv.style.display = 'none'
+				errorDiv.style.display = 'none'
+
+				try {
+					const response = await fetch('/api/analyze', {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+						},
+						body: JSON.stringify({ username }),
+					})
+
+					const data = await response.json()
+
+					if (!response.ok) {
+						throw new Error(data.error || 'An error occurred')
+					}
+
+					// Display results
+					document.getElementById('profileImage')!.setAttribute('src', data.profile_image_url)
+					document.getElementById('username-display')!.textContent = '@' + data.username
+					
+					const percentageEl = document.getElementById('percentage')!
+					const percentageSymbolEl = document.querySelector('.percentage-symbol')!
+					const descriptionEl = document.getElementById('description')!
+					
+					percentageEl.textContent = data.aura_percentage.toString()
+					descriptionEl.textContent = data.description
+
+					// Apply color class based on percentage
+					const getAuraClass = (percentage: number): string => {
+						if (percentage >= 95) return 'aura-95-100'
+						if (percentage >= 90) return 'aura-90-94'
+						if (percentage >= 80) return 'aura-80-89'
+						if (percentage >= 70) return 'aura-70-79'
+						if (percentage >= 60) return 'aura-60-69'
+						if (percentage >= 40) return 'aura-40-59'
+						if (percentage >= 20) return 'aura-20-39'
+						return 'aura-0-19'
+					}
+
+					const auraClass = getAuraClass(data.aura_percentage)
+					
+					// Remove any existing aura classes and add the new one
+					percentageEl.className = `percentage ${auraClass}`
+					percentageSymbolEl.className = `percentage-symbol ${auraClass}`
+					descriptionEl.className = `description ${auraClass}`
+
+					resultDiv.style.display = 'block'
+
+				} catch (error) {
+					errorDiv.textContent = error instanceof Error ? error.message : 'An unexpected error occurred'
+					errorDiv.style.display = 'block'
+				} finally {
+					// Reset button state
+					analyzeBtn.disabled = false
+					btnText.style.display = 'inline'
+					btnLoading.style.display = 'none'
+				}
+			})
+		</script>
+	</body>
+</html>
